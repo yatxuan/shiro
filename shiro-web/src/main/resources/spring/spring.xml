@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <import resource="spring-dao.xml"/>
+
+    <context:component-scan base-package="com.xuan.dao.impl"/>
+
+    <bean id="shiroFilter"
+          class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+
+        <!--登录页叫：login.HTML-->
+        <property name="loginUrl" value="/login.html"/>
+
+        <!--未认证的页面叫：403.HTML-->
+        <property name="unauthorizedUrl" value="/403.html"/>
+
+        <!--过滤器链
+            1). anon(anonymous) 可以被匿名访问
+            2). authc(authentication)  必须认证(即登录)后才可能访问的页面.
+		    3). logout 登出.
+        -->
+        <property name="filterChainDefinitions">
+            <value>
+                /login.html = anon
+                /getIndex = anon
+                /testRole3 = roles["admin"]
+                /testRole4 = roles["admin","admin1"]
+                /testRole5 = rolesOr["admin","admin1"]
+                /* = authc
+            </value>
+        </property>
+        <property name="filters">
+            <util:map>
+                <entry key="rolesOr" value-ref="rolesOrFilter"/>
+            </util:map>
+        </property>
+    </bean>
+
+    <bean class="com.xuan.shiro.filter.RolesOrFilter" id="rolesOrFilter"/>
+
+    <!--创建SecurityManager-->
+    <bean id="securityManager"
+          class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="realm"/>
+        <property name="rememberMeManager" ref="cookieRememberMeManager"/>
+        <!--<property name="sessionManager" ref="sessionManager"/>-->
+    </bean>
+
+    <bean id="realm" class="com.xuan.shiro.CustomRealm">
+        <property name="credentialsMatcher" ref="credentialsMatcher"/>
+    </bean>
+
+    <!--加密处理-->
+    <bean id="credentialsMatcher"
+          class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+        <!--加密方式-->
+        <property name="hashAlgorithmName" value="md5"/>
+        <!--加密次数-->
+        <property name="hashIterations" value="1"/>
+    </bean>
+
+    <!--把用户名保存到cookie-->
+    <bean id="cookieRememberMeManager"
+          class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+        <property name="cookie" ref="cookie"/>
+    </bean>
+
+    <bean id="cookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+        <!--设置传入的cookie的名字-->
+        <constructor-arg value="rememberMe"/>
+        <!--设置cookie的失效时间-->
+        <property name="maxAge" value="50000"/>
+    </bean>
+
+    <!-- <bean id="redisSessionDao" class="com.xuan.session.RedisSessionDao"/>
+
+     <bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+         <property name="sessionDAO" ref="redisSessionDao"/>
+     </bean>-->
+</beans>
